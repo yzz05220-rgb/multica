@@ -7,6 +7,7 @@ import {
   FolderGit,
   FolderOpen,
   GitBranch,
+  HardDrive,
   Plus,
   Search,
   Trash2,
@@ -62,6 +63,7 @@ import { GithubRefField, githubRefHasError } from "./github-ref-field";
 import { localDirectoryLabel } from "./local-directory-label";
 import { useT } from "../../i18n";
 import { githubShortLabel } from "../../common/github-url";
+import { ProjectSpacePanel } from "./project-space-panel";
 
 // Project Resources sidebar section.
 //
@@ -110,6 +112,10 @@ type RefDialogState = {
   resource: ProjectResource & { resource_ref: GithubRepoResourceRef };
 };
 
+function isProjectSpace(r: ProjectResource): boolean {
+  return r.resource_type === "project_space";
+}
+
 export function ProjectResourcesSection({ projectId }: { projectId: string }) {
   const { t } = useT("projects");
   const wsId = useWorkspaceId();
@@ -125,6 +131,7 @@ export function ProjectResourcesSection({ projectId }: { projectId: string }) {
   const [refDialog, setRefDialog] = useState<RefDialogState | null>(null);
   const [refSaving, setRefSaving] = useState(false);
   const [refError, setRefError] = useState<string | null>(null);
+  const [projectSpaceOpen, setProjectSpaceOpen] = useState(false);
 
   const { data: resources = [] } = useQuery(
     projectResourcesOptions(wsId, projectId),
@@ -412,9 +419,13 @@ export function ProjectResourcesSection({ projectId }: { projectId: string }) {
                       resource: target,
                     });
                   }}
+                  onOpenProjectSpace={() => setProjectSpaceOpen((value) => !value)}
                 />
               ))}
             </div>
+          )}
+          {resources.some(isProjectSpace) && projectSpaceOpen && (
+            <ProjectSpacePanel projectId={projectId} />
           )}
           <Popover
             open={addOpen}
@@ -624,6 +635,7 @@ interface ResourceRowProps {
   onEditLocalDirectoryMode: (
     resource: ProjectResource & { resource_ref: LocalDirectoryResourceRef },
   ) => void;
+  onOpenProjectSpace: () => void;
 }
 
 function ResourceRow({
@@ -632,6 +644,7 @@ function ResourceRow({
   localDaemonId,
   onEditGithubRef,
   onEditLocalDirectoryMode,
+  onOpenProjectSpace,
 }: ResourceRowProps) {
   const { t } = useT("projects");
   const deleteResource = useDeleteProjectResource(
@@ -753,6 +766,24 @@ function ResourceRow({
         removing={deleteResource.isPending}
         onEditMode={onEditLocalDirectoryMode}
       />
+    );
+  }
+
+  if (isProjectSpace(resource)) {
+    return (
+      <button
+        type="button"
+        onClick={onOpenProjectSpace}
+        className="flex w-full items-center gap-2 rounded px-1 py-1 text-xs hover:bg-accent"
+      >
+        <HardDrive className="size-3.5 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1 truncate text-left">
+          {resource.label || t(($) => $.resources.project_space)}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          {t(($) => $.resources.open_space)}
+        </span>
+      </button>
     );
   }
 

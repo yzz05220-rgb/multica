@@ -905,6 +905,7 @@ export function ChatWindow() {
               noAgent
             }
             quickActionsPendingMessageId={quickActionsPending?.message_id ?? null}
+            projectId={activeProjectId}
             onReady={markContentReady}
           >
             <EmptyState

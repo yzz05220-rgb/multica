@@ -939,6 +939,8 @@ export interface AppConfigResponse {
    * too, so absent must be treated as false (#8296). */
   comment_delete_keep_replies_supported?: boolean;
   server_version?: string;
+  project_space_available?: boolean;
+  project_space_configured?: boolean;
 }
 
 // Schemas for the highest-risk API endpoints — those whose responses drive
@@ -1209,6 +1211,8 @@ export const AppConfigSchema = z.object({
   issue_create_properties_supported: BooleanWithDefaultSchema(false),
   comment_delete_keep_replies_supported: BooleanWithDefaultSchema(false),
   server_version: OptionalStringSchema,
+  project_space_available: BooleanWithDefaultSchema(false).optional(),
+  project_space_configured: BooleanWithDefaultSchema(false).optional(),
 }).loose();
 
 export const EMPTY_APP_CONFIG: AppConfigResponse = {
@@ -1232,6 +1236,8 @@ export const EMPTY_APP_CONFIG: AppConfigResponse = {
   // Fail closed: old servers delete a comment's replies with it.
   comment_delete_keep_replies_supported: false,
   feature_flags: {},
+  project_space_available: false,
+  project_space_configured: false,
 };
 
 // Preference keys may grow over time, so keep both the key and value spaces

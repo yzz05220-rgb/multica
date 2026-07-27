@@ -23,6 +23,7 @@ import {
   Brain,
   AlertCircle,
   AlertTriangle,
+  Archive,
   ArrowUpRight,
   Copy,
   RotateCw,
@@ -58,6 +59,7 @@ import {
 } from "../lib/copy-text";
 import { stripChatQuickActionsProtocol } from "../lib/quick-actions";
 import { useT } from "../../i18n";
+import { api } from "@multica/core/api";
 
 // ─── Public component ────────────────────────────────────────────────────
 
@@ -102,6 +104,7 @@ interface ChatMessageListProps {
    * that reply until chat:quick_actions resolves it.
    */
   quickActionsPendingMessageId?: string | null;
+  projectId?: string | null;
 }
 
 // ─── Virtuoso chrome ─────────────────────────────────────────────────────
@@ -201,6 +204,7 @@ export function ChatMessageList({
   quickActionsDisabled = false,
   onRegenerateQuickActions,
   quickActionsPendingMessageId = null,
+  projectId,
 }: ChatMessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollContainerEl, setScrollContainerEl] = useState<HTMLDivElement | null>(null);
@@ -405,6 +409,7 @@ export function ChatMessageList({
               latestAssistantMessageId={latestAssistantMessageId}
               quickActionsPendingMessageId={quickActionsPendingMessageId}
               starterCardsMessageId={starterCardsMessageId}
+              projectId={projectId}
             />
           </div>
         )}
@@ -470,6 +475,7 @@ const MessageBubble = memo(function MessageBubble({
   latestAssistantMessageId,
   quickActionsPendingMessageId,
   starterCardsMessageId,
+  projectId,
 }: {
   item: ChatRenderItem;
   isPending: boolean;
@@ -480,6 +486,7 @@ const MessageBubble = memo(function MessageBubble({
   latestAssistantMessageId: string | null;
   quickActionsPendingMessageId: string | null;
   starterCardsMessageId: string | null;
+  projectId?: string | null;
 }) {
   // The live row and the persisted assistant row both land here under one key,
   // and both render <AssistantMessage> — same component type, same position —
@@ -492,6 +499,7 @@ const MessageBubble = memo(function MessageBubble({
         transformContent={transformContent}
         onQuickAction={onQuickAction}
         quickActionsDisabled={quickActionsDisabled}
+        projectId={projectId}
       />
     );
   }
@@ -518,6 +526,10 @@ const MessageBubble = memo(function MessageBubble({
             content={message.content}
             className="mt-1.5"
           />
+          <SaveAttachmentsToProjectButton
+            projectId={projectId}
+            attachments={message.attachments}
+          />
         </div>
       </div>
     );
@@ -535,6 +547,7 @@ const MessageBubble = memo(function MessageBubble({
       canRegenerateQuickActions={message.id === latestAssistantMessageId}
       quickActionsPending={quickActionsPendingMessageId === message.id}
       showStarterCards={message.id === starterCardsMessageId}
+      projectId={projectId}
     />
   );
 });
@@ -567,6 +580,7 @@ function AssistantMessage({
   canRegenerateQuickActions = false,
   quickActionsPending = false,
   showStarterCards = false,
+  projectId,
 }: {
   taskId: string | null;
   message?: ChatMessage;
@@ -579,6 +593,7 @@ function AssistantMessage({
   quickActionsPending?: boolean;
   /** This turn is Mika's onboarding opening — render starter cards, not chips. */
   showStarterCards?: boolean;
+  projectId?: string | null;
 }) {
   const canFetchTaskMessages = isTaskMessageTaskId(taskId);
 
@@ -658,6 +673,10 @@ function AssistantMessage({
             attachments={message.attachments}
             content={settledContent ?? message.content}
           />
+          <SaveAttachmentsToProjectButton
+            projectId={projectId}
+            attachments={message.attachments}
+          />
           <MessageFooter
             message={message}
             timeline={timeline}
@@ -689,6 +708,49 @@ function AssistantMessage({
         </>
       )}
     </div>
+  );
+}
+
+function SaveAttachmentsToProjectButton({
+  projectId,
+  attachments,
+}: {
+  projectId?: string | null;
+  attachments?: import("@multica/core/types").Attachment[];
+}) {
+  const { t } = useT("chat");
+  const [saving, setSaving] = useState(false);
+  if (!projectId || !attachments || attachments.length === 0) return null;
+  const save = async () => {
+    setSaving(true);
+    try {
+      await api.saveAttachmentsToProjectSpace(
+        projectId,
+        attachments.map((attachment) => attachment.id),
+      );
+      toast.success(t(($) => $.message_list.saved_to_project));
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t(($) => $.message_list.save_to_project_failed),
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className="mt-1 h-6 px-1.5 text-[10px] text-muted-foreground"
+      disabled={saving}
+      onClick={() => void save()}
+    >
+      <Archive className="size-3" />
+      {t(($) => $.message_list.save_to_project)}
+    </Button>
   );
 }
 

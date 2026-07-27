@@ -21,6 +21,7 @@ export function ChatWindowMessages({
   onQuickAction,
   quickActionsDisabled,
   quickActionsPendingMessageId,
+  projectId,
   onReady,
   children,
 }: {
@@ -31,6 +32,7 @@ export function ChatWindowMessages({
   onQuickAction: (action: ChatQuickAction) => void | Promise<unknown>;
   quickActionsDisabled: boolean;
   quickActionsPendingMessageId: string | null;
+  projectId?: string | null;
   /** This area has something to show — the window can fade in around it. */
   onReady?: () => void;
   children: ReactNode;
@@ -94,6 +96,7 @@ export function ChatWindowMessages({
             ? regenerateQuickActions.mutateAsync({ sessionId, messageId: message.id })
             : undefined}
           quickActionsPendingMessageId={quickActionsPendingMessageId}
+          projectId={projectId}
         />
       ) : children}
     </motion.div>

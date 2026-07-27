@@ -61,6 +61,8 @@ services:
       - "127.0.0.1:${BACKEND_PORT:-${API_PORT:-${SERVER_PORT:-${PORT:-8080}}}}:8080"
     volumes:
       - backend_uploads:/app/data/uploads
+      - project_spaces:/app/data/project-spaces
+      - project_imports:/app/data/project-imports
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-multica}:${POSTGRES_PASSWORD:-multica}@postgres:5432/${POSTGRES_DB:-multica}?sslmode=disable
       DATABASE_SEARCH_WORK_MEM_MB: ${DATABASE_SEARCH_WORK_MEM_MB:-64}
@@ -229,6 +231,8 @@ services:
       # (bot_token_encrypted), so this single deployment-wide key is all
       # the operator needs to set here.
       MULTICA_TELEGRAM_SECRET_KEY: ${MULTICA_TELEGRAM_SECRET_KEY:-}
+      MULTICA_PROJECT_SPACE_ROOT: ${MULTICA_PROJECT_SPACE_ROOT:-/app/data/project-spaces}
+      MULTICA_PROJECT_IMPORT_STAGING_ROOT: ${MULTICA_PROJECT_IMPORT_STAGING_ROOT:-/app/data/project-imports}
     restart: unless-stopped
 
   frontend:
@@ -249,3 +253,5 @@ services:
 volumes:
   pgdata:
   backend_uploads:
+  project_spaces:
+  project_imports:
