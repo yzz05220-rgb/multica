@@ -17,6 +17,8 @@ const (
 	PathTaskMessages  = "/tasks/{task_id}/messages"
 	PathStorageScope  = "/storage/{scope}"
 	PathStorageValue  = "/storage/{scope}/{key}"
+	PathTasks         = "/tasks"
+	PathAgents        = "/agents"
 )
 
 type ContractKind string
@@ -66,4 +68,6 @@ var Operations = []Operation{
 	{Method: http.MethodGet, Path: PathStorageValue, Contract: ContractPluginExtension, Policy: OperationPolicy{Credentials: pluginCredentials, Risk: RiskRead, Audit: AuditNotRequired, RateLimits: pluginRateLimits}},
 	{Method: http.MethodPut, Path: PathStorageValue, Contract: ContractPluginExtension, Policy: OperationPolicy{Credentials: pluginCredentials, Risk: RiskContentWrite, Audit: AuditPlanned, RateLimits: pluginRateLimits}},
 	{Method: http.MethodDelete, Path: PathStorageValue, Contract: ContractPluginExtension, Policy: OperationPolicy{Credentials: pluginCredentials, Risk: RiskContentWrite, Audit: AuditPlanned, RateLimits: pluginRateLimits}},
+	{Method: http.MethodGet, Path: PathTasks, Contract: ContractSharedResource, Policy: OperationPolicy{Credentials: sharedCredentials, Scope: "tasks:read", Risk: RiskRead, Audit: AuditPlanned, RateLimits: sharedRateLimits}},
+	{Method: http.MethodGet, Path: PathAgents, Contract: ContractSharedResource, Policy: OperationPolicy{Credentials: sharedCredentials, Scope: "agents:read", Risk: RiskRead, Audit: AuditPlanned, RateLimits: sharedRateLimits}},
 }
