@@ -90,6 +90,20 @@ describe("surface bridge", () => {
 
     expect(mockCall).not.toHaveBeenCalled();
     expect(posted).toContainEqual(expect.objectContaining({ id: "subroute", ok: false, status: 400 }));
+  it("forwards scheduler issue collection and task creation paths", async () => {
+    const { port } = connectedBridge();
+    port.postMessage({ id: "issues", kind: "action", method: "GET", path: "/issues?limit=50" });
+    await vi.waitFor(() => expect(mockCall).toHaveBeenCalledTimes(1));
+    port.postMessage({ id: "task", kind: "action", method: "POST", path: "/issues/i1/tasks", body: {} });
+    await vi.waitFor(() => expect(mockCall).toHaveBeenCalledTimes(2));
+    expect(mockCall).toHaveBeenNthCalledWith(1, "installation-1", expect.objectContaining({
+      method: "GET",
+      path: "/issues?limit=50",
+    }));
+    expect(mockCall).toHaveBeenNthCalledWith(2, "installation-1", expect.objectContaining({
+      method: "POST",
+      path: "/issues/i1/tasks",
+    }));
   });
 
   it("refuses paths and methods outside the Action API before fetch", async () => {
