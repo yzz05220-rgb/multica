@@ -488,6 +488,7 @@ const MessageBubble = memo(function MessageBubble({
   starterCardsMessageId: string | null;
   projectId?: string | null;
 }) {
+  const [t] = useT("chat");
   // The live row and the persisted assistant row both land here under one key,
   // and both render <AssistantMessage> — same component type, same position —
   // so React reconciles rather than remounts at task completion.
@@ -521,6 +522,11 @@ const MessageBubble = memo(function MessageBubble({
             density="compact"
             phase="settled"
           />
+          {message.supplement && (
+            <p className="mt-1 text-caption text-muted-foreground" role="status">
+              {t(($) => $.supplement[message.supplement!.status])}
+            </p>
+          )}
           <AttachmentList
             attachments={message.attachments}
             content={message.content}
