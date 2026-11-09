@@ -1,6 +1,7 @@
 package publicapiv1
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 

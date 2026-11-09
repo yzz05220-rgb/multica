@@ -1574,7 +1574,8 @@ func (s *TaskService) enqueueResolvedAgentTask(ctx context.Context, issue db.Iss
 		HeadSha: headShaText(s.ResolveIssueReviewSHA(ctx, issue.ID)),
 	}
 	var task db.AgentTaskQueue
-	if workflowHandoff {
+	var err error
+	if options.WorkflowHandoff {
 		task, err = s.createWorkflowSquadHandoffTask(ctx, issue, params)
 	} else {
 		task, err = s.Queries.CreateAgentTask(ctx, params)
