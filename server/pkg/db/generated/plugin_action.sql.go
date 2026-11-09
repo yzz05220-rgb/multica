@@ -46,6 +46,32 @@ type ListPluginActionWorkspaceAgentsRow struct {
 // waiting_local_directory. Archived or system agents are excluded entirely.
 func (q *Queries) ListPluginActionWorkspaceAgents(ctx context.Context, workspaceID pgtype.UUID) ([]ListPluginActionWorkspaceAgentsRow, error) {
 	rows, err := q.db.Query(ctx, listPluginActionWorkspaceAgents, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPluginActionWorkspaceAgentsRow{}
+	for rows.Next() {
+		var i ListPluginActionWorkspaceAgentsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Model,
+			&i.MaxConcurrentTasks,
+			&i.QueuedTaskCount,
+			&i.RunningTaskCount,
+			&i.WaitingTaskCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPluginActionIssues = `-- name: ListPluginActionIssues :many
 SELECT i.id, i.workspace_id, i.title, i.description, i.status, i.priority,
        i.assignee_type, i.assignee_id, i.creator_type, i.creator_id,
@@ -144,17 +170,35 @@ func (q *Queries) ListPluginActionIssues(ctx context.Context, arg ListPluginActi
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListPluginActionWorkspaceAgentsRow{}
+	items := []ListPluginActionIssuesRow{}
 	for rows.Next() {
-		var i ListPluginActionWorkspaceAgentsRow
+		var i ListPluginActionIssuesRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Name,
-			&i.Model,
-			&i.MaxConcurrentTasks,
-			&i.QueuedTaskCount,
-			&i.RunningTaskCount,
-			&i.WaitingTaskCount,
+			&i.WorkspaceID,
+			&i.Title,
+			&i.Description,
+			&i.Status,
+			&i.Priority,
+			&i.AssigneeType,
+			&i.AssigneeID,
+			&i.CreatorType,
+			&i.CreatorID,
+			&i.ParentIssueID,
+			&i.Position,
+			&i.StartDate,
+			&i.DueDate,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.LastActivityAt,
+			&i.Number,
+			&i.ProjectID,
+			&i.Metadata,
+			&i.Stage,
+			&i.Properties,
+			&i.Revision,
+			&i.StatusCategory,
+			&i.ActiveTaskCount,
 		); err != nil {
 			return nil, err
 		}
@@ -238,35 +282,6 @@ func (q *Queries) ListPluginActionWorkspaceTasks(ctx context.Context, arg ListPl
 			&i.IssueNumber,
 			&i.IssueTitle,
 			&i.CreatedAt,
-	items := []ListPluginActionIssuesRow{}
-	for rows.Next() {
-		var i ListPluginActionIssuesRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.WorkspaceID,
-			&i.Title,
-			&i.Description,
-			&i.Status,
-			&i.Priority,
-			&i.AssigneeType,
-			&i.AssigneeID,
-			&i.CreatorType,
-			&i.CreatorID,
-			&i.ParentIssueID,
-			&i.Position,
-			&i.StartDate,
-			&i.DueDate,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.LastActivityAt,
-			&i.Number,
-			&i.ProjectID,
-			&i.Metadata,
-			&i.Stage,
-			&i.Properties,
-			&i.Revision,
-			&i.StatusCategory,
-			&i.ActiveTaskCount,
 		); err != nil {
 			return nil, err
 		}
