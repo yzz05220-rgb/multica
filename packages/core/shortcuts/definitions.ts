@@ -100,7 +100,8 @@ export const SHORTCUT_ACTIONS: readonly ShortcutActionDefinition[] = [
     defaultShortcut: createShortcutChord("E"),
     allowInEditable: false,
   },
-  { id: "send", category: "general", defaultShortcut: primary("Enter"), allowInEditable: true },
+  // Yanqu fork: plain Enter sends, Shift+Enter inserts a newline (upstream default is Mod+Enter).
+  { id: "send", category: "general", defaultShortcut: createShortcutChord("Enter"), allowInEditable: true },
   // Browser-style history navigation (Mod+[ / Mod+]). Neither bracket is
   // app-owned (PRIMARY_RESERVED_KEYS) nor browser-owned
   // (BROWSER_ONLY_PRIMARY_RESERVED_KEYS), so both are recordable on every
