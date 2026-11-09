@@ -64,6 +64,7 @@ import {
   type SystemNotificationPayload,
 } from "../platform/system-notification";
 import type { Workspace } from "../types/workspace";
+import type { AgentTask } from "../types/agent";
 import {
   chatKeys,
   isTaskMessageTimelineHeld,
@@ -72,6 +73,7 @@ import {
   QUICK_ACTIONS_PENDING_TIMEOUT_MS,
 } from "../chat/queries";
 import { useChatStore } from "../chat";
+import { connectedAppsKeys } from "../connected-apps/queries";
 import { upsertChatMessageToCaches } from "../chat/message-cache";
 import {
   promotePendingChatTask,
@@ -838,6 +840,16 @@ export function useRealtimeSync(
       workspace: () => {
         qc.invalidateQueries({ queryKey: workspaceKeys.list() });
       },
+      // app_request:changed carries ids only; refetch through the
+      // authorized list endpoints.
+      app_request: () => {
+        const wsId = getCurrentWsId();
+        if (wsId) qc.invalidateQueries({ queryKey: connectedAppsKeys.requests(wsId) });
+      },
+      app_call: () => {
+        const wsId = getCurrentWsId();
+        if (wsId) qc.invalidateQueries({ queryKey: connectedAppsKeys.calls(wsId) });
+      },
       skill: () => {
         const wsId = getCurrentWsId();
         if (wsId) qc.invalidateQueries({ queryKey: workspaceKeys.skills(wsId) });
@@ -1135,6 +1147,17 @@ export function useRealtimeSync(
       const payload = p as IssueUpdatedPayload;
       const { issue } = payload;
       if (!issue?.id) return;
+      const subtreeFilter = {
+        queryKey: issueKeys.tasksAll(),
+        predicate: (q: { queryKey: readonly unknown[] }) => q.queryKey[3] === "subtree",
+      };
+      if (payload.parent_changed) {
+        qc.invalidateQueries(subtreeFilter);
+      } else if (payload.title_changed) {
+        qc.setQueriesData<AgentTask[]>(subtreeFilter, (tasks) => tasks?.map((task) =>
+          task.issue_id === issue.id ? { ...task, issue_title: issue.title } : task,
+        ));
+      }
       const wsId = getCurrentWsId();
       if (wsId) {
         onIssueUpdated(qc, wsId, issue, {
@@ -1165,6 +1188,7 @@ export function useRealtimeSync(
     const unsubIssueDeleted = ws.on("issue:deleted", (p) => {
       const { issue_id } = p as IssueDeletedPayload;
       if (!issue_id) return;
+      qc.invalidateQueries({ queryKey: issueKeys.tasksAll(), predicate: (q) => q.queryKey[3] === "subtree" });
       const wsId = getCurrentWsId();
       if (wsId) {
         onIssueDeleted(qc, wsId, issue_id);

@@ -767,7 +767,13 @@
       "source_label": "{{name}} 的评论",
       "edit": "编辑批注 {{number}}",
       "note_placeholder": "添加意见...",
-      "count_one": "{{count}} 条批注"
+      "count_one": "{{count}} 条批注",
+      "direct_reply": "回复",
+      "direct_comment": "发表评论",
+      "direct_target_deleted": "回复目标已删除。请先复制意见，再选择其他评论。",
+      "copy_note": "复制意见",
+      "note_copied": "意见已复制",
+      "note_copy_failed": "复制失败，请选中意见文字手动复制。"
     }
   },
   "agent_activity": {
@@ -861,7 +867,12 @@
     "included_comments_one": "包含 {{count}} 条评论",
     "summary_runs_one": "{{count}} 次运行",
     "more_runs_one": "显示其余 {{count}} 次运行",
-    "queued_count_one": "{{count}} 个排队中"
+    "queued_count_one": "{{count}} 个排队中",
+    "latest": "最近",
+    "include_children": "包含子任务",
+    "loading": "正在加载运行记录...",
+    "load_failed_retry": "无法加载运行记录，点击重试",
+    "empty": "此范围内暂无运行记录。"
   },
   "runs_timeline": {
     "title": "运行记录",
@@ -1867,5 +1878,24 @@
       "empty_description": "在任务列表里调好筛选和显示方式，然后另存为视图。"
     },
     "filter_count_one": "{{count}} 个筛选"
+  },
+  "app_calls": {
+    "section_title": "应用",
+    "chips_label": "本次运行用到的应用",
+    "calls_count_other": "{{count}} 次调用",
+    "more": "还有 {{count}} 个",
+    "scope": {
+      "team": "团队账号",
+      "personal": "个人账号"
+    },
+    "outcome": {
+      "ok": "已执行",
+      "error": "失败",
+      "blocked": "已拦截",
+      "pending": "等待确认",
+      "approved": "已批准",
+      "rejected": "已拒绝",
+      "rate_limited": "已限流"
+    }
   }
 }
