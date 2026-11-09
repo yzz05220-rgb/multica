@@ -3873,7 +3873,7 @@ func runIssueDelete(cmd *cobra.Command, args []string) error {
 	for _, arg := range args {
 		ref, err := resolveIssueRef(ctx, client, arg)
 		if err != nil {
-			return fmt.Errorf("delete: cannot resolve %q: %w (nothing was deleted)", arg, err)
+			return cli.WithUserMessage(fmt.Sprintf("delete: cannot resolve %q — nothing was deleted", arg), err)
 		}
 		if seen[ref.ID] {
 			fmt.Fprintf(os.Stderr, "Skipping duplicate target %s.\n", arg)
@@ -3886,7 +3886,7 @@ func runIssueDelete(cmd *cobra.Command, args []string) error {
 			Status     string `json:"status"`
 		}
 		if err := client.GetJSON(ctx, "/api/issues/"+url.PathEscape(ref.ID), &issue); err != nil {
-			return fmt.Errorf("delete: cannot load %q: %w (nothing was deleted)", arg, err)
+			return cli.WithUserMessage(fmt.Sprintf("delete: cannot load %q — nothing was deleted", arg), err)
 		}
 		identifier := issue.Identifier
 		if identifier == "" {
@@ -3946,7 +3946,7 @@ func runIssueDelete(cmd *cobra.Command, args []string) error {
 				deleted = append(deleted, t)
 				continue
 			}
-			return fmt.Errorf("delete: cannot verify %s after batch delete: %w", t.Identifier, err)
+			return cli.WithUserMessage(fmt.Sprintf("delete: cannot verify %s after the batch delete", t.Identifier), err)
 		}
 		failed = append(failed, t)
 	}
