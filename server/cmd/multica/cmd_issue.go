@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -308,6 +309,21 @@ var issueStatusCmd = &cobra.Command{
 	RunE: runIssueStatus,
 }
 
+var issueDeleteCmd = &cobra.Command{
+	Use:   "delete <id> [<id>...]",
+	Short: "Delete one or more issues (permanent)",
+	Long: "Delete issues permanently by issue key (e.g. MUL-123) or full UUID.\n" +
+		"Deletion is irreversible: it cancels the issues' tasks, deletes their\n" +
+		"attachments, and un-parents any sub-issues that are not also deleted.\n\n" +
+		"Every target is resolved and listed before anything is deleted, and the\n" +
+		"run aborts if any target cannot be resolved. In an interactive terminal\n" +
+		"you must confirm; in scripts pass --yes. The result reports each requested\n" +
+		"issue individually, and the command exits non-zero unless every requested\n" +
+		"issue was actually deleted.",
+	Args: cobra.MinimumNArgs(1),
+	RunE: runIssueDelete,
+}
+
 var issueReorderCmd = &cobra.Command{
 	Use:   "reorder <id>",
 	Short: "Move an issue within its status column",
@@ -610,6 +626,10 @@ func init() {
 	issueCmd.AddCommand(issueUpdateCmd)
 	issueCmd.AddCommand(issueAssignCmd)
 	issueCmd.AddCommand(issueStatusCmd)
+	issueCmd.AddCommand(issueDeleteCmd)
+	issueDeleteCmd.Flags().Bool("yes", false, "Skip the confirmation prompt (required in non-interactive shells)")
+	issueDeleteCmd.Flags().Bool("dry-run", false, "Resolve and list the targets without deleting anything")
+	issueDeleteCmd.Flags().String("output", "table", "Output format: table or json")
 	issueCmd.AddCommand(issueReorderCmd)
 	issueCmd.AddCommand(issueCommentCmd)
 	issueCmd.AddCommand(issueSubscriberCmd)
@@ -3821,4 +3841,136 @@ func compactComments(comments []map[string]any) {
 			}
 		}
 	}
+}
+
+// runIssueDelete implements `multica issue delete`. It exists because the web
+// UI's batch delete is unreachable from scripts and agents, and because the
+// batch endpoint silently skips ids it cannot find: this command resolves
+// every target up front (aborting before any deletion when one fails),
+// confirms, deletes via the batch endpoint, then verifies each target is
+// actually gone so the reported result is exact rather than assumed.
+func runIssueDelete(cmd *cobra.Command, args []string) error {
+	client, err := newAPIClient(cmd)
+	if err != nil {
+		return err
+	}
+	yes, _ := cmd.Flags().GetBool("yes")
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	output, _ := cmd.Flags().GetString("output")
+
+	ctx, cancel := cli.APIContext(context.Background())
+	defer cancel()
+
+	type deleteTarget struct {
+		Input      string `json:"input"`
+		ID         string `json:"id"`
+		Identifier string `json:"identifier"`
+		Title      string `json:"title"`
+		Status     string `json:"status"`
+	}
+	targets := make([]deleteTarget, 0, len(args))
+	seen := make(map[string]bool, len(args))
+	for _, arg := range args {
+		ref, err := resolveIssueRef(ctx, client, arg)
+		if err != nil {
+			return fmt.Errorf("delete: cannot resolve %q: %w (nothing was deleted)", arg, err)
+		}
+		if seen[ref.ID] {
+			fmt.Fprintf(os.Stderr, "Skipping duplicate target %s.\n", arg)
+			continue
+		}
+		seen[ref.ID] = true
+		var issue struct {
+			Identifier string `json:"identifier"`
+			Title      string `json:"title"`
+			Status     string `json:"status"`
+		}
+		if err := client.GetJSON(ctx, "/api/issues/"+url.PathEscape(ref.ID), &issue); err != nil {
+			return fmt.Errorf("delete: cannot load %q: %w (nothing was deleted)", arg, err)
+		}
+		identifier := issue.Identifier
+		if identifier == "" {
+			identifier = ref.Display
+		}
+		targets = append(targets, deleteTarget{Input: arg, ID: ref.ID, Identifier: identifier, Title: issue.Title, Status: issue.Status})
+	}
+
+	fmt.Fprintf(os.Stderr, "About to delete %d issue(s):\n", len(targets))
+	for _, t := range targets {
+		fmt.Fprintf(os.Stderr, "  %s [%s] %s\n", t.Identifier, t.Status, t.Title)
+	}
+
+	if dryRun {
+		fmt.Fprintln(os.Stderr, "Dry run: nothing was deleted.")
+		if output == "json" {
+			_ = json.NewEncoder(os.Stdout).Encode(map[string]any{"dry_run": true, "targets": targets})
+		}
+		return nil
+	}
+
+	if !yes {
+		if !stdinIsTerminal() {
+			return fmt.Errorf("delete: refusing to delete %d issue(s) without confirmation; pass --yes in non-interactive shells", len(targets))
+		}
+		fmt.Fprintf(os.Stderr, "Type \"yes\" to permanently delete these %d issue(s): ", len(targets))
+		line, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+		if strings.TrimSpace(line) != "yes" {
+			return fmt.Errorf("delete: aborted by user (nothing was deleted)")
+		}
+	}
+
+	ids := make([]string, 0, len(targets))
+	for _, t := range targets {
+		ids = append(ids, t.ID)
+	}
+	var batchResult struct {
+		Deleted int `json:"deleted"`
+	}
+	if err := client.PostJSON(ctx, "/api/issues/batch-delete", map[string]any{"issue_ids": ids}, &batchResult); err != nil {
+		return fmt.Errorf("delete: %w", err)
+	}
+
+	// Verify each target individually: the batch endpoint skips ids it
+	// cannot find and only returns a count, so a per-issue re-read is the
+	// only way to report exactly what happened.
+	deleted := make([]deleteTarget, 0, len(targets))
+	failed := make([]deleteTarget, 0)
+	for _, t := range targets {
+		var probe struct {
+			ID string `json:"id"`
+		}
+		err := client.GetJSON(ctx, "/api/issues/"+url.PathEscape(t.ID), &probe)
+		if err != nil {
+			var httpErr *cli.HTTPError
+			if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+				deleted = append(deleted, t)
+				continue
+			}
+			return fmt.Errorf("delete: cannot verify %s after batch delete: %w", t.Identifier, err)
+		}
+		failed = append(failed, t)
+	}
+
+	for _, t := range deleted {
+		fmt.Fprintf(os.Stderr, "Deleted %s.\n", t.Identifier)
+	}
+	for _, t := range failed {
+		fmt.Fprintf(os.Stderr, "NOT deleted (still exists): %s.\n", t.Identifier)
+	}
+	if output == "json" {
+		_ = json.NewEncoder(os.Stdout).Encode(map[string]any{
+			"requested": len(targets), "deleted": deleted, "not_deleted": failed,
+			"server_reported_deleted": batchResult.Deleted,
+		})
+	}
+	fmt.Fprintf(os.Stderr, "Deleted %d of %d issue(s).\n", len(deleted), len(targets))
+	if len(failed) > 0 {
+		return fmt.Errorf("delete: %d issue(s) were not deleted", len(failed))
+	}
+	return nil
+}
+
+func stdinIsTerminal() bool {
+	info, err := os.Stdin.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }

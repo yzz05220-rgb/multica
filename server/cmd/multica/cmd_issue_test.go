@@ -6169,3 +6169,165 @@ func TestIssueSearchCommandRegistration(t *testing.T) {
 		t.Errorf("project flag usage = %q, want %q", got, "Filter by project ID")
 	}
 }
+
+func newIssueDeleteTestCmd() *cobra.Command {
+	cmd := &cobra.Command{Use: "delete"}
+	cmd.Flags().Bool("yes", false, "")
+	cmd.Flags().Bool("dry-run", false, "")
+	cmd.Flags().String("output", "table", "")
+	return cmd
+}
+
+// issueDeleteMock is a stateful fake of the issue API surface that
+// `multica issue delete` talks to: fetch-by-ref (identifier or UUID),
+// batch delete, and fetch-after-delete for verification.
+type issueDeleteMock struct {
+	issues  map[string]map[string]any // by UUID
+	deleted map[string]bool
+	posted  []string // issue_ids from the batch-delete call, in order
+	posts   int
+}
+
+func newIssueDeleteMock() *issueDeleteMock {
+	return &issueDeleteMock{
+		issues: map[string]map[string]any{
+			"11111111-1111-4111-8111-111111111111": {"id": "11111111-1111-4111-8111-111111111111", "identifier": "TST-1", "title": "First", "status": "done"},
+			"22222222-2222-4222-8222-222222222222": {"id": "22222222-2222-4222-8222-222222222222", "identifier": "TST-2", "title": "Second", "status": "done"},
+		},
+		deleted: map[string]bool{},
+	}
+}
+
+func (m *issueDeleteMock) handler(t *testing.T) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/issues/batch-delete":
+			var body struct {
+				IssueIDs []string `json:"issue_ids"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Errorf("batch-delete body: %v", err)
+			}
+			m.posts++
+			m.posted = append(m.posted, body.IssueIDs...)
+			for _, id := range body.IssueIDs {
+				m.deleted[id] = true
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"deleted": len(body.IssueIDs)})
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/issues/"):
+			ref := strings.TrimPrefix(r.URL.Path, "/api/issues/")
+			for id, issue := range m.issues {
+				if ref == id || ref == issue["identifier"] {
+					if m.deleted[id] {
+						break
+					}
+					_ = json.NewEncoder(w).Encode(issue)
+					return
+				}
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]any{"error": "issue not found"})
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}
+}
+
+func TestRunIssueDeleteBatch(t *testing.T) {
+	mock := newIssueDeleteMock()
+	srv := httptest.NewServer(mock.handler(t))
+	defer srv.Close()
+	setCLITestServerEnv(t, srv.URL)
+	t.Setenv("MULTICA_TOKEN", "mat_test-token")
+
+	cmd := newIssueDeleteTestCmd()
+	_ = cmd.Flags().Set("yes", "true")
+	stderr := captureStderr(t)
+	defer stderr.restore()
+	if err := runIssueDelete(cmd, []string{"TST-1", "TST-2"}); err != nil {
+		t.Fatalf("runIssueDelete: %v", err)
+	}
+	report := stderr.read()
+	if mock.posts != 1 {
+		t.Fatalf("batch-delete posts = %d, want 1", mock.posts)
+	}
+	want := []string{"11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"}
+	if fmt.Sprint(mock.posted) != fmt.Sprint(want) {
+		t.Fatalf("posted ids = %v, want %v", mock.posted, want)
+	}
+	if !strings.Contains(report, "Deleted 2 of 2") {
+		t.Fatalf("stderr = %q, want the exact 2 of 2 summary", report)
+	}
+}
+
+func TestRunIssueDeleteAbortsOnUnknownTarget(t *testing.T) {
+	mock := newIssueDeleteMock()
+	srv := httptest.NewServer(mock.handler(t))
+	defer srv.Close()
+	setCLITestServerEnv(t, srv.URL)
+	t.Setenv("MULTICA_TOKEN", "mat_test-token")
+
+	cmd := newIssueDeleteTestCmd()
+	_ = cmd.Flags().Set("yes", "true")
+	err := runIssueDelete(cmd, []string{"TST-1", "NOPE-9"})
+	if err == nil || !strings.Contains(err.Error(), "nothing was deleted") {
+		t.Fatalf("err = %v, want a nothing-was-deleted abort", err)
+	}
+	if mock.posts != 0 {
+		t.Fatalf("batch-delete posts = %d, want 0 (abort must precede deletion)", mock.posts)
+	}
+}
+
+func TestRunIssueDeleteDryRun(t *testing.T) {
+	mock := newIssueDeleteMock()
+	srv := httptest.NewServer(mock.handler(t))
+	defer srv.Close()
+	setCLITestServerEnv(t, srv.URL)
+	t.Setenv("MULTICA_TOKEN", "mat_test-token")
+
+	cmd := newIssueDeleteTestCmd()
+	_ = cmd.Flags().Set("dry-run", "true")
+	stderr := captureStderr(t)
+	defer stderr.restore()
+	if err := runIssueDelete(cmd, []string{"TST-1"}); err != nil {
+		t.Fatalf("runIssueDelete dry-run: %v", err)
+	}
+	if mock.posts != 0 {
+		t.Fatalf("batch-delete posts = %d, want 0 on dry-run", mock.posts)
+	}
+	if !strings.Contains(stderr.read(), "Dry run") {
+		t.Fatalf("stderr missing the dry-run notice")
+	}
+}
+
+func TestRunIssueDeleteRequiresYesNonInteractive(t *testing.T) {
+	mock := newIssueDeleteMock()
+	srv := httptest.NewServer(mock.handler(t))
+	defer srv.Close()
+	setCLITestServerEnv(t, srv.URL)
+	t.Setenv("MULTICA_TOKEN", "mat_test-token")
+
+	// Pin stdin to a pipe so the non-interactive branch is deterministic:
+	// a char-device stdin (a terminal, or /dev/null under some runners)
+	// would take the prompt path instead.
+	pipeR, pipeW, pipeErr := os.Pipe()
+	if pipeErr != nil {
+		t.Fatalf("os.Pipe: %v", pipeErr)
+	}
+	defer pipeR.Close()
+	defer pipeW.Close()
+	oldStdin := os.Stdin
+	os.Stdin = pipeR
+	defer func() { os.Stdin = oldStdin }()
+
+	cmd := newIssueDeleteTestCmd()
+	err := runIssueDelete(cmd, []string{"TST-1"})
+	if err == nil || !strings.Contains(err.Error(), "--yes") {
+		t.Fatalf("err = %v, want a refusal pointing at --yes", err)
+	}
+	if mock.posts != 0 {
+		t.Fatalf("batch-delete posts = %d, want 0 without confirmation", mock.posts)
+	}
+}
