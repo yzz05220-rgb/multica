@@ -1,0 +1,64 @@
+name: Sync upstream
+
+# Daily: merge multica-ai/multica main into our main.
+# Clean merge -> pushed automatically. Conflict -> abort + open an issue, never force.
+
+on:
+  schedule:
+    - cron: "30 20 * * *" # 04:30 Asia/Shanghai
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout our main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge upstream main
+        id: merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "yanqu-sync-bot"
+          git config user.email "muse@wuwoapp.com"
+          git remote add upstream https://github.com/multica-ai/multica.git
+          git fetch upstream main
+          if git merge-base --is-ancestor upstream/main HEAD; then
+            echo "result=uptodate" >> "$GITHUB_OUTPUT"
+            echo "Already up to date with upstream."
+            exit 0
+          fi
+          if git merge --no-edit upstream/main; then
+            git push origin main
+            echo "result=merged" >> "$GITHUB_OUTPUT"
+            echo "Merged upstream/main and pushed."
+          else
+            git merge --abort
+            echo "result=conflict" >> "$GITHUB_OUTPUT"
+            echo "Merge conflict; aborted without changes."
+          fi
+
+      - name: Open issue on conflict
+        if: steps.merge.outputs.result == 'conflict'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Upstream sync conflict $(date -u +%F)"
+          existing=$(gh issue list --search "in:title \"Upstream sync conflict\"" --state open --json number --jq 'length')
+          if [ "$existing" = "0" ]; then
+            gh issue create --title "$title" --body "The daily auto-sync could not merge multica-ai/multica main into our main without conflicts, so nothing was changed. Please merge upstream/main manually, resolve conflicts (keep the yanqu patch commits and the project-spaces commit), and push."
+          fi
+          echo "::error::Upstream merge conflict - manual resolution required."
+          exit 1
