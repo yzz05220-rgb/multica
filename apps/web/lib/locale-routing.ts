@@ -30,5 +30,7 @@ export function resolveLocaleFromSignals({
     if (tag) candidates.push(tag);
   }
 
+  // yanqu-default-zh: 未显式选择语言时默认简体中文
+  if (!cookieLocale) return "zh-Hans";
   return matchLocale(candidates);
 }

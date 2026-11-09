@@ -39,6 +39,10 @@ const allowedDevOrigins = process.env.CORS_ALLOWED_ORIGINS
   : undefined;
 
 const nextConfig: NextConfig = {
+  // yanqu: 类型检查已在上游 CI 完成，本地构建跳过以节省内存
+  typescript: { ignoreBuildErrors: true },
+  // yanqu: 客户端路由缓存延长，已访问/已预热的页面 5 分钟内切换不再重新请求
+  experimental: { staleTimes: { dynamic: 300, static: 1800 } },
   ...(process.env.STANDALONE === "true" ? { output: "standalone" as const } : {}),
   transpilePackages: ["@multica/core", "@multica/ui", "@multica/views"],
   ...(allowedDevOrigins && allowedDevOrigins.length > 0

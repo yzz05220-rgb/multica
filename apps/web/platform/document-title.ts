@@ -13,7 +13,7 @@
  */
 
 /** Root fallback — the title of a page that has nothing more specific to say. */
-export const SITE_TITLE = "Multica — Project Management for Human + Agent Teams";
+export const SITE_TITLE = "颜趣运营操作台 · Multica";
 
 /** Appended to every page-specific title. */
 export const TITLE_SUFFIX = " | Multica";

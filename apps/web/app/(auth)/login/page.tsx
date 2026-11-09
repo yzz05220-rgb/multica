@@ -237,17 +237,7 @@ function LoginPageContent() {
           : undefined
       }
       onTokenObtained={setLoggedInCookie}
-      extra={
-        <span className="text-caption text-muted-foreground">
-          {t(($) => $.web.prefer_desktop)}{" "}
-          <Link
-            href="/download"
-            className="font-medium text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground/70"
-          >
-            {t(($) => $.web.download)}
-          </Link>
-        </span>
-      }
+      // 颜趣补丁：去掉“下载桌面端”入口，官方桌面端不含本地补丁
     />
   );
 }

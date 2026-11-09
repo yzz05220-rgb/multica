@@ -105,6 +105,9 @@ export function LoginPage({
   const qc = useQueryClient();
   const [step, setStep] = useState<"email" | "code" | "cli_confirm">("email");
   const [email, setEmail] = useState("");
+  // yanqu-password-login
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -192,6 +195,38 @@ export function LoginPage({
       }
     },
     [email, t],
+  );
+
+  const handlePasswordLogin = useCallback(
+    async (e?: React.FormEvent) => {
+      e?.preventDefault();
+      if (!username || !password) {
+        setError("请输入用户名和密码");
+        return;
+      }
+      setLoading(true);
+      setError("");
+      try {
+        if (cliCallback) {
+          const { token } = await api.passwordLogin(username, password);
+          localStorage.setItem("multica_token", token);
+          api.setToken(token);
+          onTokenObtained?.();
+          redirectToCliCallback(cliCallback.url, token, cliCallback.state);
+          return;
+        }
+        await useAuthStore.getState().loginWithPassword(username, password);
+        const wsList = await api.listWorkspaces();
+        qc.setQueryData(workspaceKeys.list(), wsList);
+        onTokenObtained?.();
+        onSuccess();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "用户名或密码不正确");
+        setPassword("");
+        setLoading(false);
+      }
+    },
+    [username, password, onSuccess, cliCallback, onTokenObtained, qc],
   );
 
   const handleVerify = useCallback(
@@ -425,16 +460,29 @@ export function LoginPage({
               </AlertDescription>
             </Alert>
           )}
-          <form id="login-form" onSubmit={handleSendCode} className="space-y-4">
+          <form id="login-form" onSubmit={handlePasswordLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="login-email">{t(($) => $.common.email)}</Label>
+              <Label htmlFor="login-username">用户名</Label>
               <Input
-                id="login-email"
-                type="email"
-                placeholder={t(($) => $.common.email_placeholder)}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="login-username"
+                type="text"
+                autoComplete="username"
+                placeholder="请输入用户名"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 autoFocus
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="login-password">密码</Label>
+              <Input
+                id="login-password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="请输入密码"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
@@ -449,11 +497,9 @@ export function LoginPage({
             form="login-form"
             className="w-full"
             size="lg"
-            disabled={!email || loading}
+            disabled={!username || !password || loading}
           >
-            {loading
-              ? t(($) => $.signin.sending)
-              : t(($) => $.signin.continue)}
+            {loading ? "登录中..." : "登录"}
           </Button>
           {(google || onGoogleLogin) && (
             <Button

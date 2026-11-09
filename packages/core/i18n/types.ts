@@ -9,7 +9,7 @@ export const SUPPORTED_LOCALES: SupportedLocale[] = [
   "fr",
   "es",
 ];
-export const DEFAULT_LOCALE: SupportedLocale = "en";
+export const DEFAULT_LOCALE: SupportedLocale = "zh-Hans";
 
 export type LocaleResources = Record<string, Record<string, unknown>>;
 

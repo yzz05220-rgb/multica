@@ -10,7 +10,7 @@
     "squads": "小队",
     "usage": "统计",
     "runtimes": "运行时",
-    "skills": "Skills",
+    "skills": "技能",
     "settings": "设置",
     "views": "视图"
   },
@@ -139,7 +139,8 @@
       "view_remove": "从侧栏移除",
       "view_rename": "重命名",
       "view_duplicate": "创建副本",
-      "view_delete": "删除视图"
+      "view_delete": "删除视图",
+      "all_projects_one": "全部 {{count}} 个项目"
     },
     "team": {
       "new_agent": "新建智能体",
@@ -155,7 +156,11 @@
       "members_other": "{{count}} 位成员",
       "resources": "资源",
       "runtimes_online_other": "{{count}} 台在线",
-      "invite_member": "邀请成员"
+      "invite_member": "邀请成员",
+      "stuck_one": "{{count}} 个任务在等待离线的运行时",
+      "running_tasks_one": "{{count}} 个任务运行中",
+      "members_one": "{{count}} 位成员",
+      "runtimes_online_one": "{{count}} 台在线"
     },
     "autopilots": {
       "all": "全部自动化",
@@ -193,7 +198,9 @@
     "direction_desc": "降序",
     "section_columns": "列",
     "load_more": "加载更多",
-    "loading_more": "加载中…"
+    "loading_more": "加载中…",
+    "filter_count_one": "{{count}} 个筛选",
+    "selected_one": "已选 {{count}} 项"
   },
   "object_page": {
     "toggle_panel": "切换右侧边栏",

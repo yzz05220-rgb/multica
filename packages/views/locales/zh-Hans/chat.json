@@ -10,7 +10,8 @@
   "fab": {
     "running": "Multica 正在工作...",
     "unread_other": "{{count}} 条未读对话",
-    "default": "问 Multica"
+    "default": "问 Multica",
+    "unread_one": "{{count}} 条未读对话"
   },
   "input": {
     "placeholder_no_agent": "创建一个智能体后才能开始对话",
@@ -47,7 +48,8 @@
     "remove": "移除排队消息",
     "more": "更多队列操作",
     "fallback": "排队消息",
-    "action_failed_toast": "无法更新排队消息"
+    "action_failed_toast": "无法更新排队消息",
+    "title_one": "{{count}} 条排队消息"
   },
   "message_list": {
     "show_details": "查看详情",
@@ -87,7 +89,9 @@
     "quick_actions_heading": "后续提问",
     "quick_actions_aria": "后续提问建议",
     "quick_actions_regenerate": "重新生成建议",
-    "quick_actions_regenerate_failed": "无法重新生成建议，请重试。"
+    "quick_actions_regenerate_failed": "无法重新生成建议，请重试。",
+    "tools_one": "{{count}} 个工具",
+    "process_steps_one": "{{count}} 步"
   },
   "session_history": {
     "untitled": "无标题",

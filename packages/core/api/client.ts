@@ -1033,6 +1033,14 @@ export class ApiClient {
     });
   }
 
+  // 颜趣本地补丁：用户名 + 密码登录
+  async passwordLogin(username: string, password: string): Promise<LoginResponse> {
+    return this.fetch("/auth/password-login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    });
+  }
+
   async googleLogin(code: string, redirectUri: string): Promise<LoginResponse> {
     return this.fetch("/auth/google", {
       method: "POST",

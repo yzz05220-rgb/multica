@@ -462,7 +462,8 @@
       "warning": "此操作无法撤销。",
       "cancel": "取消",
       "confirm": "永久删除",
-      "deleting": "删除中…"
+      "deleting": "删除中…",
+      "description_one": "将永久删除 {{count}} 个自动化及其运行历史。"
     }
   },
   "wakeups": {
@@ -543,7 +544,8 @@
         "reply": "\"PR 已合并，开始更新文档并关闭任务。\"",
         "event_examples": "PR 合并、有新评论"
       }
-    }
+    },
+    "banner_one": "{{count}} 条唤醒已自动暂停：{{issue}}「{{condition}}」——{{reason}}"
   },
   "intro": {
     "label": "自动化",
