@@ -16,6 +16,21 @@ func TestMigrationNumericPrefixesAreUnique(t *testing.T) {
 	// From 129 onward, keep the numeric sequence unique so release tooling and
 	// operators can identify one schema change unambiguously by its number.
 	const firstUniqueMigrationNumber = 129
+	// yanqu fork: these local migrations were shipped (and recorded in the
+	// production schema_migrations table by their full stem) before upstream
+	// claimed the same numbers. The migrator keys on the full stem, so they
+	// are safe; renaming them would re-run them. Exempt them from the
+	// uniqueness lint instead of renumbering.
+	forkDuplicateStems := map[string]bool{
+		"224_project_space_import_tables":            true,
+		"225_project_space_import_file_unique_index": true,
+		"226_project_space_import_project_index":     true,
+		"227_project_space_import_file_status_index": true,
+		"228_project_space_resource_backfill":        true,
+		"629_chat_supplement":                        true,
+		"630_chat_supplement_request":                true,
+		"631_chat_supplement_message":                true,
+	}
 	stemByNumber := make(map[int]string)
 	for _, file := range files {
 		stem, _, ok := splitMigrationFilename(filepath.Base(file))
@@ -28,6 +43,9 @@ func TestMigrationNumericPrefixesAreUnique(t *testing.T) {
 		}
 		number, err := strconv.Atoi(prefix)
 		if err != nil || number < firstUniqueMigrationNumber {
+			continue
+		}
+		if forkDuplicateStems[stem] {
 			continue
 		}
 		if previous, exists := stemByNumber[number]; exists {
