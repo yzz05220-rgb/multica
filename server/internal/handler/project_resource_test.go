@@ -1845,6 +1845,14 @@ func TestProjectResourceRejectsInvalidCheckoutRef(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&list); err != nil {
 		t.Fatalf("decode ListProjectResources: %v", err)
 	}
+	// yanqu: every project also owns a system-managed project_space resource.
+	userResources := list.Resources[:0]
+	for _, res := range list.Resources {
+		if res.ResourceType != "project_space" {
+			userResources = append(userResources, res)
+		}
+	}
+	list.Resources = userResources
 	if len(list.Resources) != 1 {
 		t.Fatalf("expected 1 resource, got %d", len(list.Resources))
 	}
