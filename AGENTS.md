@@ -135,3 +135,15 @@ Workspace-scoped queries filter by `workspace_id`; membership gates access and `
 - Use names, types, and tests to express behavior. Code comments are English and kept for non-obvious rationale and constraints; remove superseded plans and incident narratives when updating code. Preserve tool directives and mixed-version contracts.
 - New global pre-workspace routes use a single word or `/{noun}/{verb}`, not hyphenated root names. Update `server/internal/handler/reserved_slugs.json`, run `pnpm generate:reserved-slugs`, and commit `packages/core/paths/reserved-slugs.ts` when changing reserved slugs.
 - Use atomic conventional commits and the repository PR template. Follow the [pull request requirements](CONTRIBUTING.md#pull-request-requirements): Problem, Goal, Proposal (high-level design understandable without much background), Alternatives (optional), and Screenshots. Attach screenshots or a screen recording for UI or interaction changes (missing both means rejection by default). For releases, follow [.github/RELEASING.md](.github/RELEASING.md); default to a patch bump unless specified otherwise.
+
+## Yanqu Fork Conventions (added 2026-11-12)
+
+- Thin fork: core changes stay mechanical and minimal; new capability goes to
+  side services/plugins on upstream extension surfaces first.
+- Frozen surfaces (no new features, no deletion without an owner decision and
+  a dependency check): project spaces, plugin SDK/UI, chat guidance. Existing
+  migrations and production data on these surfaces stay untouched.
+- Route-data prefetching currently exists twice (upstream hover prefetch in
+  packages/views/layout/route-data-prefetch.tsx and the fork's eager
+  yanqu-warm-all-routes.tsx). Do not add a third; the merge recipe is tracked
+  on the workbench card for the prefetch merge.
