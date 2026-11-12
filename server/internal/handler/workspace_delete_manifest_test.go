@@ -54,6 +54,7 @@ var workspaceDeletionManifest = map[string]workspaceDeleteAction{
 	"chat_message":                       workspaceDelete,
 	"chat_pinned_agent":                  workspaceDelete,
 	"chat_session":                       workspaceDelete,
+	"chat_submission_receipt":            workspaceDelete,
 	"chat_supplement":                    workspaceDelete,
 	"client_usage_daily":                 workspaceDeleteDetach,
 	"comment":                            workspaceDelete,
@@ -136,6 +137,7 @@ var workspaceDeletionManifest = map[string]workspaceDeleteAction{
 	"squad_member":                       workspaceDelete,
 	"sys_cron_executions":                workspaceDeleteKeep,
 	"theme_store_download":               workspaceDeleteKeep, // per registry theme, not workspace-owned
+	"task_context_receipt":               workspaceDelete,
 	"task_message":                       workspaceDelete,
 	"task_supplement":                    workspaceDelete,
 	"task_supplement_capability":         workspaceDelete,

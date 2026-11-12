@@ -177,6 +177,9 @@ func pruneRuntimeSystemAgentChatDependents(ctx context.Context, q *db.Queries, r
 			return err
 		}
 	}
+	if err := q.DeleteChatSubmissionReceiptsBySystemRuntimeAgents(ctx, runtimeID); err != nil {
+		return err
+	}
 	if err := q.DeleteChatDraftRestoresBySystemRuntimeAgents(ctx, runtimeID); err != nil {
 		return err
 	}

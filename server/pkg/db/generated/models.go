@@ -648,6 +648,18 @@ type ChatSession struct {
 	ExplicitlyCreatedAt pgtype.Timestamptz `json:"explicitly_created_at"`
 }
 
+type ChatSubmissionReceipt struct {
+	ChatSessionID      pgtype.UUID        `json:"chat_session_id"`
+	WorkspaceID        pgtype.UUID        `json:"workspace_id"`
+	InitiatorUserID    pgtype.UUID        `json:"initiator_user_id"`
+	ActorType          string             `json:"actor_type"`
+	ActorID            pgtype.UUID        `json:"actor_id"`
+	SubmissionID       pgtype.UUID        `json:"submission_id"`
+	RequestFingerprint []byte             `json:"request_fingerprint"`
+	Response           []byte             `json:"response"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+}
+
 type ChatSupplement struct {
 	MessageID       pgtype.UUID        `json:"message_id"`
 	TaskID          pgtype.UUID        `json:"task_id"`
@@ -659,6 +671,7 @@ type ChatSupplement struct {
 	FailureReason   pgtype.Text        `json:"failure_reason"`
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	DeliveredAt     pgtype.Timestamptz `json:"delivered_at"`
+
 }
 
 type ClientUsageDaily struct {
@@ -1764,6 +1777,15 @@ type SysCronExecution struct {
 	ErrorMsg     pgtype.Text        `json:"error_msg"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+type TaskContextReceipt struct {
+	TaskID      pgtype.UUID        `json:"task_id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	IssueID     pgtype.UUID        `json:"issue_id"`
+	Receipt     []byte             `json:"receipt"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 type TaskMessage struct {
