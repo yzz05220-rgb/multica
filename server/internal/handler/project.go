@@ -1060,7 +1060,7 @@ func (h *Handler) SearchProjects(w http.ResponseWriter, r *http.Request) {
 		return rows.Err()
 	})
 	if err != nil {
-		if writeSearchCancellation(w, r, err) {
+		if writeQueryCancellation(w, r, err) {
 			return
 		}
 		// Statement-timeout surfaces as SQLSTATE 57014 — same
@@ -1077,7 +1077,7 @@ func (h *Handler) SearchProjects(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to search projects")
 		return
 	}
-	if writeSearchCancellation(w, r, ctx.Err()) {
+	if writeQueryCancellation(w, r, ctx.Err()) {
 		return
 	}
 
@@ -1133,7 +1133,7 @@ func (h *Handler) SearchProjects(w http.ResponseWriter, r *http.Request) {
 		resp[i] = spr
 	}
 
-	if writeSearchCancellation(w, r, ctx.Err()) {
+	if writeQueryCancellation(w, r, ctx.Err()) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
