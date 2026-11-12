@@ -4,8 +4,11 @@ name: Sync upstream
 # Clean merge -> pushed automatically. Conflict -> abort + open an issue, never force.
 
 on:
-  schedule:
-    - cron: "30 20 * * *" # 04:30 Asia/Shanghai
+  # Schedule disabled 2026-11-12 (fleet convergence): upstream sync is owned
+  # solely by the HK nightly adapt flow (git-repo-registry entry for
+  # multica-yanqu-src), which resolves conflicts with agent help and feeds
+  # the daily fleet check. Two drivers were racing the same tree. Manual
+  # dispatch remains available.
   workflow_dispatch:
 
 permissions:
