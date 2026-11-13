@@ -11278,6 +11278,8 @@ func defaultArgsForProvider(cfg Config, provider string) []string {
 		args = cfg.QwenArgs
 	case "droid":
 		args = cfg.DroidArgs
+	case "amp":
+		args = cfg.AmpArgs
 	case "qwenpaw":
 		args = cfg.QwenpawArgs
 	default:
